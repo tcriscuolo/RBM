@@ -13,7 +13,7 @@ from numpy.linalg import norm
 from tempfile import TemporaryFile
 
 class RBM:
-	def __init__(self, input = None, nvisible = None, nhidden = 100, lrate = 0.1,
+	def __init__(self, input = None, nvisible = None, nhidden = 500, lrate = 0.1,
 									W = None, vbias = None, hbias = None, seed = 1234):
 		if (input is None):
 			try:
@@ -83,17 +83,8 @@ class RBM:
 
 	'''
 	def propup(self, vunit):
-		dot = np.dot(vunit, self.W)
-		if(np.sum(np.isnan(dot)) > 0):
-			print('Found the source of evil')
-			print(vunit)
-			print(self.W)
-			input()
-
 		pre_activation = self.hbias + np.dot(vunit, self.W)
 		hprob = sigmoid(pre_activation)
-		if(np.sum(np.isnan(hprob)) > 0):
-			print('WTF hprob', pre_activation, hprob)
 		return [pre_activation, hprob]
 
 	'''
@@ -192,24 +183,21 @@ class RBM:
 
 	'''
 	def mean_cross_entropy(self, x):
-		gibs = self.gibbs_vhv(x)
-		pre_act = gibs[-2]
-		xtilde = gibs[-1]
+		gibbs = self.gibbs_vhv(x)
+		pre_act = gibbs[-2]
+		xtilde = gibbs[-1]
 		ce = np.mean(np.sum(x * np.log(sigmoid(pre_act)) +
 						(1 - x)*np.log(1 - sigmoid(pre_act)), axis = 1))
 		return ce
 
-	def update_parameters(self, input, xtilde, batch, verbosity = False):
+	def update_parameters(self, input, xtilde, verbosity = False):
 
 		Wp = np.zeros(self.W.shape, dtype = 'float64')
 		hbiasp = np.zeros(self.nhidden, dtype = 'float64')
 		vbiasp = np.zeros(self.nvisible, dtype = 'float64')
 
 		batch_size = input.shape[0]
-		if(batch_size <= 0):
-			print('Kabuuum')
-			input()
-
+		
 		for samp in range(batch_size):
 			xp = input[samp]
 			hxp = self.hbias + np.dot(xp, self.W)
@@ -220,11 +208,12 @@ class RBM:
 			hbiasp = hbiasp + self.update_hbias(hxp, hxt)/batch_size
 			vbiasp = vbiasp + self.update_vbias(xp, xt)/batch_size
 		
-		self.W = self.W + self.lrate * Wp/batch_size
+		blambda = self.lrate/float(batch_size)
+
+		self.W = self.W + blambda * Wp
+		self.hbias = self.hbias + blambda * hbiasp
+		self.vbias = self.vbias + blambda * vbiasp
 		
-		self.hbias = self.hbias + self.lrate*hbiasp/batch_size
-		self.vbias = self.vbias + self.lrate*vbiasp/batch_size
-	
 		if(verbosity):
 			print('Wp', norm(Wp))
 			print('hbiasp', norm(hbiasp))
@@ -238,11 +227,12 @@ class RBM:
 			xtilde = self.gibbs_vhv(xtilde)[-1]	
 		return xtilde
 
-	def constrative_divergence(self, nepochs = 10, batch_size = 30, cdk = 5, epoch_stats = True, auto_save = True):
+	def contrastive_divergence(self, nepochs = 15, batch_size = 100, cdk = 10, 
+									validation = None, auto_save = False, auto_plot = True, weight_decay = 1.0):
 		nbatches = self.input.shape[0] // batch_size
-		print('-- Training using constrative divergence')
-		print('nhidden %d' % self.nhidden)
-		print('lrate %f' % self.lrate)
+		print('-- Training using contrastive divergence')
+		print('nhidden: %d' % self.nhidden)
+		print('lrate: %f' % self.lrate)
 		print('nepochs: %d' % nepochs)
 		print('bsize: %d' % batch_size)
 		print('k: %d' % cdk)
@@ -250,25 +240,72 @@ class RBM:
 		for epoch in range(nepochs):
 			for batch in range(nbatches):
 
-				x = self.input[batch*batch_size:(batch+1)*batch_size]
+				x = self.input[batch*batch_size:(batch+1)*batch_size].copy()
 				xtilde = self.perform_cd(x, cdk)
-				this_batch_size = x.shape[0]
-				self.update_parameters(x, xtilde, batch)
-			
-		
-			if(epoch_stats):
+				self.update_parameters(x, xtilde)
+
+			'''
+				Decreases the learning rate after each epoch
+			'''
+			self.lrate = self.lrate * weight_decay
+
+			if(validation is not None):
 				print('Epoch %d stats' % (epoch))
-				print('\t\tMean Reconstruction Error %f' % self.mean_reconstruction_error(self.input))
-				print('\t\tMean Cross Entropy Error %f' % self.mean_cross_entropy(self.input))
+				print('\t\tMean Reconstruction Error %f' % self.mean_reconstruction_error(validation))
+				print('\t\tMean Cross Entropy Error %f' % self.mean_cross_entropy(validation))
 			
 			if(auto_save):
 				self.save_model('k_%d_cd_epoch_%d.model' % (cdk, epoch))	
+			
+			if(auto_plot):
+				self.plot_hidden_units('plots/nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch))
 
-			self.plot_hidden_units('plots/k_%d_cd_filters_epoch_%d.png' % (cdk, epoch))
-	
+	def persistent_contrastive_divergence(self, nepochs = 15, batch_size = 100, cdk = 10,
+									validation = None, auto_save = False, auto_plot = True, weight_decay = 0.9):
+
+		nbatches = self.input.shape[0]  // batch_size
+		print('-- Training using persistent constrative divergence')
+		print('nhidden: %d' % self.nhidden)
+		print('lrate: %f' % self.lrate)
+		print('nepochs: %d' % nepochs)
+		print('bsize: %d' % batch_size)
+		print('k: %d' % cdk)
+
+		xpersisted = self.input.copy()
+		
+		for epoch in range(nepochs):
+				
+			for batch in range(nbatches):
+				low = batch*batch_size
+				high = (batch+1)*batch_size
+							
+				x = self.input[low:high]
+
+				xtilde = xpersisted[low:high]
+				xtilde = self.perform_cd(xtilde, cdk)
+
+				xpersisted[low:high] = xtilde.copy()
+							
+				self.update_parameters(x, xtilde)
+			'''
+				Decreases the learning rate after each epoch
+			'''
+			self.lrate = self.lrate * weight_decay
+
+			if(validation is not None):
+				print('Epoch %d stats' % (epoch))
+				print('\t\tMean Reconstruction Error %f' % self.mean_reconstruction_error(validation))
+				print('\t\tMean Cross Entropy Error %f' % self.mean_cross_entropy(validation))
+			
+			if(auto_save):
+				self.save_model('k_%d_cd_epoch_%d.model' % (cdk, epoch))	
+			
+			if(auto_plot):
+				self.plot_hidden_units('plots/nhidden_%d_k_%d_pcd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch))
+
 	def plot_hidden_units(self, path, tile_shape = (10, 10)):
 		imsize = self.imsize
-		tiled_image = tile_raster_images(X = self.W.T, img_shape = (imsize	, imsize),
+		tiled_image = tile_raster_images(X = self.W.T, img_shape = (imsize, imsize),
 										tile_shape = tile_shape, tile_spacing=(1, 1))
 		image = Image.fromarray(tiled_image)
 		image.save(path)
@@ -333,9 +370,11 @@ class RBM:
 		except:
 			raise
 	
-	def sample_from_model(self, samples_to_take = 10, number_of_chains = 10, k = 1):
-		selected_idx = np.random.choice(range(self.nsample), samples_to_take)
-		digits = self.input[selected_idx]
+	def sample_from_model(self, input = None, samples_to_take = 10, number_of_chains = 10, cdk = 1):
+		nsamples = input.shape[0]
+
+		selected_idx = np.random.choice(range(nsamples), samples_to_take)
+		digits = input[selected_idx]
 		
 		tile_shape = (samples_to_take, number_of_chains)
 			
@@ -345,7 +384,7 @@ class RBM:
 			images[idx] = digits[idx] 
 		
 		for chain in range(1, number_of_chains):
-			digits = self.perform_cd(digits, k)
+			digits = self.perform_cd(digits, cdk)
 			for idx in range(samples_to_take):
 				images[chain*samples_to_take + idx] = digits[idx] 
 		

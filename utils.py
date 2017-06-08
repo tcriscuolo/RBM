@@ -11,7 +11,7 @@ except:
 	import Image as Image
 
 def to_numpy_format(data):
-	return (np.round(np.asarray(data[0])), np.round(np.asarray(data[1])))
+	return (np.round(np.asarray(data[0])),np.round(np.asarray(data[1])))
 
 def load_mnist_data(path = 'mnist.pkl.gz'):
 
@@ -30,15 +30,12 @@ def load_mnist_data(path = 'mnist.pkl.gz'):
 
 
 def sigmoid(x):
-	res = expit(x)
-	return res
+	return expit(x)
 
-def softplus(x, limit = 30):
+def softplus(x, limit = 30.0):
 	if (x > limit):
 		return x
 	res = np.log(1.0 + np.exp(x))
-	if res is np.nan:
-		print('wtf softplus')
 	return res
 
 '''
