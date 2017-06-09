@@ -32,7 +32,7 @@ class RBM:
 				where the weights are sampled from a symmetric uniform interval
 		'''
 		if(W is None):
-			t = 4.0 * np.sqrt(6.0 / (nvisible + nhidden))
+			t = 4.0 * np.sqrt(6.0/float(nvisible + nhidden))
 			W = np.random.uniform(-t, t, (nvisible, nhidden)).astype('float64')
 
 		if(vbias is None):
@@ -123,8 +123,8 @@ class RBM:
 			input:
 			output:
 	'''
-	def gibbs_vhv(self, v0):
-		h1pre, h1prob, h1samp = self.sample_h_given_v(v0)
+	def gibbs_vhv(self, v0samp):
+		h1pre, h1prob, h1samp = self.sample_h_given_v(v0samp)
 		v1pre, v1prob, v1samp = self.sample_v_given_h(h1samp)
 		return [h1pre, h1prob, h1samp, v1pre, v1prob, v1samp]
 
@@ -137,8 +137,8 @@ class RBM:
 
 			output:
 	'''
-	def gibbs_hvh(self, h0):
-		v1pre, v1prob, v1samp = self.sample_v_given_h(h0)
+	def gibbs_hvh(self, h0samp):
+		v1pre, v1prob, v1samp = self.sample_v_given_h(h0samp)
 		h1pre, h1prob, h1samp = self.sample_h_given_v(v1samp)
 		return [v1pre, v1prob, v1samp, h1pre, h1prob, h1samp]
 
@@ -200,20 +200,17 @@ class RBM:
 		
 		for samp in range(batch_size):
 			xp = input[samp]
-			hxp = self.hbias + np.dot(xp, self.W)
-			
+			hxp = sigmoid(self.hbias + np.dot(xp, self.W))
 			xt = xtilde[samp]
-			hxt = self.hbias + np.dot(xt, self.W)
-			Wp = Wp + self.update_W(xp, hxp, xt, hxt)/batch_size
-			hbiasp = hbiasp + self.update_hbias(hxp, hxt)/batch_size
-			vbiasp = vbiasp + self.update_vbias(xp, xt)/batch_size
+			hxt = sigmoid(self.hbias + np.dot(xt, self.W))
+			Wp += + self.update_W(xp, hxp, xt, hxt)
+			hbiasp += self.update_hbias(hxp, hxt)
+			vbiasp += self.update_vbias(xp, xt)
 		
 		blambda = self.lrate/float(batch_size)
-
-		self.W = self.W + blambda * Wp
-		self.hbias = self.hbias + blambda * hbiasp
-		self.vbias = self.vbias + blambda * vbiasp
-		
+		self.W = self. W + (blambda * Wp)
+		self.hbias = self.hbias + (blambda * hbiasp)
+		self.vbias = self.vbias + (blambda * vbiasp)
 		if(verbosity):
 			print('Wp', norm(Wp))
 			print('hbiasp', norm(hbiasp))
@@ -227,7 +224,7 @@ class RBM:
 			xtilde = self.gibbs_vhv(xtilde)[-1]	
 		return xtilde
 
-	def contrastive_divergence(self, nepochs = 15, batch_size = 100, cdk = 10, 
+	def contrastive_divergence(self, nepochs = 15, batch_size = 30, cdk = 15, 
 									validation = None, auto_save = False, auto_plot = True, weight_decay = 1.0):
 		nbatches = self.input.shape[0] // batch_size
 		print('-- Training using contrastive divergence')
@@ -260,11 +257,11 @@ class RBM:
 			if(auto_plot):
 				self.plot_hidden_units('plots/nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch))
 
-	def persistent_contrastive_divergence(self, nepochs = 15, batch_size = 100, cdk = 10,
-									validation = None, auto_save = False, auto_plot = True, weight_decay = 0.9):
+	def persistent_contrastive_divergence(self, nepochs = 15, batch_size = 50, cdk = 15,
+									validation = None, auto_save = False, auto_plot = True, weight_decay = 1.0):
 
 		nbatches = self.input.shape[0]  // batch_size
-		print('-- Training using persistent constrative divergence')
+		print('-- Training using persistent contrastive divergence')
 		print('nhidden: %d' % self.nhidden)
 		print('lrate: %f' % self.lrate)
 		print('nepochs: %d' % nepochs)

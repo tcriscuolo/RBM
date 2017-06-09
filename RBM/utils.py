@@ -35,6 +35,8 @@ def sigmoid(x):
 def softplus(x, limit = 30.0):
 	if (x > limit):
 		return x
+	if(x < -limit):
+		return 0
 	res = np.log(1.0 + np.exp(x))
 	return res
 
