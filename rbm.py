@@ -13,8 +13,8 @@ from numpy.linalg import norm
 from tempfile import TemporaryFile
 
 class RBM:
-	def __init__(self, input = None, nvisible = None, nhidden = 500, lrate = 0.1,
-									W = None, vbias = None, hbias = None, seed = 1234):
+	def __init__(self, input = None, nvisible = None, nhidden = 100, lrate = 0.1,
+									W = None, vbias = None, hbias = None, seed = 123):
 		if (input is None):
 			try:
 				input =  load_mnist_data()[0]
@@ -32,7 +32,7 @@ class RBM:
 				where the weights are sampled from a symmetric uniform interval
 		'''
 		if(W is None):
-			t = 4.0 * np.sqrt(6.0 / (nvisible + nhidden))
+			t = 4.0 * np.sqrt(6.0/float(nvisible + nhidden))
 			W = np.random.uniform(-t, t, (nvisible, nhidden)).astype('float64')
 
 		if(vbias is None):
@@ -123,29 +123,15 @@ class RBM:
 			input:
 			output:
 	'''
-	def gibbs_vhv(self, v0):
-		h1pre, h1prob, h1samp = self.sample_h_given_v(v0)
+	def gibbs_vhv(self, v0samp):
+		h1pre, h1prob, h1samp = self.sample_h_given_v(v0samp)
 		v1pre, v1prob, v1samp = self.sample_v_given_h(h1samp)
 		return [h1pre, h1prob, h1samp, v1pre, v1prob, v1samp]
 
-
-	'''
-			from a hidden unit sample a visible unit
-			then  a hidden unit
-
-			intput:
-
-			output:
-	'''
-	def gibbs_hvh(self, h0):
-		v1pre, v1prob, v1samp = self.sample_v_given_h(h0)
-		h1pre, h1prob, h1samp = self.sample_h_given_v(v1samp)
-		return [v1pre, v1prob, v1samp, h1pre, h1prob, h1samp]
-
 	def free_energy(self, visible):
-		left = np.dot(self.vbias, visible)
+		left = np.dot(visible, self.vbias)
 		right_exp = self.hbias + np.dot(visible, self.W)
-		right = np.sum(np.log(1 + np.exp(right_exp)))
+		right = np.sum(np.log(1.0 + np.exp(right_exp)), axis = 1)
 		return (-left - right)
 
 	def update_W(self, x, hx, xtilde, hxtilde):
@@ -184,11 +170,38 @@ class RBM:
 	'''
 	def mean_cross_entropy(self, x):
 		gibbs = self.gibbs_vhv(x)
-		pre_act = gibbs[-2]
+		xprob = gibbs[-2]
 		xtilde = gibbs[-1]
-		ce = np.mean(np.sum(x * np.log(sigmoid(pre_act)) +
-						(1 - x)*np.log(1 - sigmoid(pre_act)), axis = 1))
+		ce = np.mean(np.sum(x * np.log(xprob) +
+						(1.0 - x)*np.log(1.0 - xprob), axis = 1))
 		return ce
+
+
+	''' 
+			Computes the mean pseudo likelihood flipping only a single bit 
+			of the visible unit
+
+			input: 
+						x: input to compute mean pseudo likelihood
+						idx: index of the bit to flip
+			output:
+						 an estimative of the input x 
+						 mean pseudo likelihood
+	'''
+	def mean_pseudo_likelihood(self, x, idx):
+		xfe = self.free_energy(x)
+		# swaps the ith bit of each image
+		means = []
+		for index in idx:
+			# flip the ith visible unit
+			x[: , index] = 1 - x[:, index]	
+			nxfe = self.free_energy(x)
+			# flip back the ith visible unit
+			x[:, index] = 1 - x[:, index]
+			means.append(self.nvisible * np.log(sigmoid(nxfe - xfe)))
+		return np.mean(means)
+	
+
 
 	def update_parameters(self, input, xtilde, verbosity = False):
 
@@ -200,20 +213,17 @@ class RBM:
 		
 		for samp in range(batch_size):
 			xp = input[samp]
-			hxp = self.hbias + np.dot(xp, self.W)
-			
+			hxp = sigmoid(self.hbias + np.dot(xp, self.W))
 			xt = xtilde[samp]
-			hxt = self.hbias + np.dot(xt, self.W)
-			Wp = Wp + self.update_W(xp, hxp, xt, hxt)/batch_size
-			hbiasp = hbiasp + self.update_hbias(hxp, hxt)/batch_size
-			vbiasp = vbiasp + self.update_vbias(xp, xt)/batch_size
+			hxt = sigmoid(self.hbias + np.dot(xt, self.W))
+			Wp += + self.update_W(xp, hxp, xt, hxt)
+			hbiasp += self.update_hbias(hxp, hxt)
+			vbiasp += self.update_vbias(xp, xt)
 		
 		blambda = self.lrate/float(batch_size)
-
-		self.W = self.W + blambda * Wp
-		self.hbias = self.hbias + blambda * hbiasp
-		self.vbias = self.vbias + blambda * vbiasp
-		
+		self.W = self. W + (blambda * Wp)
+		self.hbias = self.hbias + (blambda * hbiasp)
+		self.vbias = self.vbias + (blambda * vbiasp)
 		if(verbosity):
 			print('Wp', norm(Wp))
 			print('hbiasp', norm(hbiasp))
@@ -227,8 +237,15 @@ class RBM:
 			xtilde = self.gibbs_vhv(xtilde)[-1]	
 		return xtilde
 
-	def contrastive_divergence(self, nepochs = 15, batch_size = 100, cdk = 10, 
-									validation = None, auto_save = False, auto_plot = True, weight_decay = 1.0):
+	def validate_model(self, validation, epoch, size = 40):
+		print('Epoch %d stats' % (epoch))
+		print('\t\tMean Reconstruction Error %f' % self.mean_reconstruction_error(validation))
+		print('\t\tMean Cross Entropy Error %f' % self.mean_cross_entropy(validation))
+		bit_index = np.random.choice(a = validation.shape[1], size = size)
+		print('\t\tMean pseudo likelihood error %f' % self.mean_pseudo_likelihood(validation, bit_index))
+
+	def contrastive_divergence(self, nepochs = 20, batch_size = 50, cdk = 10, 
+									validation = None, auto_save = False, auto_plot = True, decay_ratio = 1.0):
 		nbatches = self.input.shape[0] // batch_size
 		print('-- Training using contrastive divergence')
 		print('nhidden: %d' % self.nhidden)
@@ -237,34 +254,40 @@ class RBM:
 		print('bsize: %d' % batch_size)
 		print('k: %d' % cdk)
 
+		if (validation is not None):
+			self.validate_model(validation, 0)
+
+		if(auto_plot):
+			im = self.hidden_units_to_image()
+			im.save('plots/nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, 0))
+
 		for epoch in range(nepochs):
 			for batch in range(nbatches):
 
-				x = self.input[batch*batch_size:(batch+1)*batch_size].copy()
+				x = self.input[batch*batch_size:(batch+1)*batch_size]
 				xtilde = self.perform_cd(x, cdk)
 				self.update_parameters(x, xtilde)
 
 			'''
 				Decreases the learning rate after each epoch
 			'''
-			self.lrate = self.lrate * weight_decay
+			self.lrate = self.lrate * decay_ratio
 
 			if(validation is not None):
-				print('Epoch %d stats' % (epoch))
-				print('\t\tMean Reconstruction Error %f' % self.mean_reconstruction_error(validation))
-				print('\t\tMean Cross Entropy Error %f' % self.mean_cross_entropy(validation))
-			
+				self.validate_model(validation, epoch + 1)
+		
 			if(auto_save):
-				self.save_model('k_%d_cd_epoch_%d.model' % (cdk, epoch))	
-			
-			if(auto_plot):
-				self.plot_hidden_units('plots/nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch))
+				self.save_model('k_%d_cd_epoch_%d.model' % (cdk, epoch + 1))	
 
-	def persistent_contrastive_divergence(self, nepochs = 15, batch_size = 100, cdk = 10,
-									validation = None, auto_save = False, auto_plot = True, weight_decay = 0.9):
+			if(auto_plot):	
+				im = self.hidden_units_to_image()
+				im.save('plots/nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch + 1))
+
+	def persistent_contrastive_divergence(self, nepochs = 20, batch_size = 50, cdk = 10,
+									validation = None, auto_save = False, auto_plot = True, decay_ratio = 1.0):
 
 		nbatches = self.input.shape[0]  // batch_size
-		print('-- Training using persistent constrative divergence')
+		print('-- Training using persistent contrastive divergence')
 		print('nhidden: %d' % self.nhidden)
 		print('lrate: %f' % self.lrate)
 		print('nepochs: %d' % nepochs)
@@ -273,43 +296,50 @@ class RBM:
 
 		xpersisted = self.input.copy()
 		
+		if (validation is not None):
+			self.validate_model(validation, 0) 
+
+		if (auto_plot):
+			im = self.hidden_units_to_image()
+			im.save('plots/nhidden_%d_k_%d_pcd_filters_epoch_%d.png' % (self.nhidden, cdk, 0))
+
 		for epoch in range(nepochs):
-				
 			for batch in range(nbatches):
 				low = batch*batch_size
 				high = (batch+1)*batch_size
-							
 				x = self.input[low:high]
 
-				xtilde = xpersisted[low:high]
-				xtilde = self.perform_cd(xtilde, cdk)
-
-				xpersisted[low:high] = xtilde.copy()
+				xpersisted[low:high] = self.perform_cd(xpersisted[low:high], cdk)
 							
-				self.update_parameters(x, xtilde)
+				self.update_parameters(x, xpersisted[low:high])
 			'''
 				Decreases the learning rate after each epoch
 			'''
-			self.lrate = self.lrate * weight_decay
+			self.lrate = self.lrate * decay_ratio
 
 			if(validation is not None):
-				print('Epoch %d stats' % (epoch))
-				print('\t\tMean Reconstruction Error %f' % self.mean_reconstruction_error(validation))
-				print('\t\tMean Cross Entropy Error %f' % self.mean_cross_entropy(validation))
-			
-			if(auto_save):
-				self.save_model('k_%d_cd_epoch_%d.model' % (cdk, epoch))	
-			
-			if(auto_plot):
-				self.plot_hidden_units('plots/nhidden_%d_k_%d_pcd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch))
+				self.validate_model(validation, epoch + 1)
 
-	def plot_hidden_units(self, path, tile_shape = (10, 10)):
+			if(auto_save):
+				self.save_model('k_%d_cd_epoch_%d.model' % (cdk, epoch + 1))	
+			
+			if(auto_plot):	
+				im = self.hidden_units_to_image()
+				im.save('plots/nhidden_%d_k_%d_pcd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch + 1))
+
+	def validate_model(self, validation, epoch, size = 50):
+		print('Epoch %d stats' % (epoch))
+		print('\t\tmean Reconstruction error: %f' % self.mean_reconstruction_error(validation))
+		print('\t\tmean Cross Entropy: %f' % self.mean_cross_entropy(validation))
+		bit_index = np.random.choice(a = validation.shape[1], size = size)
+		print('\t\tmean pseudo likelihood: %f' % self.mean_pseudo_likelihood(validation, bit_index))
+
+	def hidden_units_to_image(self, tile_shape = (10, 10)):
 		imsize = self.imsize
 		tiled_image = tile_raster_images(X = self.W.T, img_shape = (imsize, imsize),
 										tile_shape = tile_shape, tile_spacing=(1, 1))
 		image = Image.fromarray(tiled_image)
-		image.save(path)
-
+		return image
 
 	'''
 			Save the RBM model in a specified file 
@@ -370,18 +400,16 @@ class RBM:
 		except:
 			raise
 	
-	def sample_from_model(self, input = None, samples_to_take = 10, number_of_chains = 10, cdk = 1):
+	def sample_from_model(self, input = None, samples_to_take = 10, number_of_chains = 10, cdk = 100):
 		nsamples = input.shape[0]
 
 		selected_idx = np.random.choice(range(nsamples), samples_to_take)
 		digits = input[selected_idx]
 		
-		tile_shape = (samples_to_take, number_of_chains)
+		tile_shape = (number_of_chains, samples_to_take)
 			
 		shape = (samples_to_take * number_of_chains, self.imsize * self.imsize) 
 		images = np.zeros(shape)
-		for idx in range(samples_to_take):
-			images[idx] = digits[idx] 
 		
 		for chain in range(1, number_of_chains):
 			digits = self.perform_cd(digits, cdk)
@@ -390,4 +418,6 @@ class RBM:
 		
 
 
-		return tile_raster_images(images, (self.imsize, self.imsize), (samples_to_take, number_of_chains))
+		return Image.fromarray(
+										tile_raster_images(images, (self.imsize, self.imsize), (samples_to_take, number_of_chains))
+										)

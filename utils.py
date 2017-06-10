@@ -35,6 +35,8 @@ def sigmoid(x):
 def softplus(x, limit = 30.0):
 	if (x > limit):
 		return x
+	if(x < -limit):
+		return 0
 	res = np.log(1.0 + np.exp(x))
 	return res
 
@@ -171,3 +173,25 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(1, 1),
                         tile_col * (W + Ws): tile_col * (W + Ws) + W
                     ] = this_img * c
         return out_array
+
+
+
+
+'''
+		Plot samples images from a given data
+'''
+
+def sample_image(data, sample_size = (20, 20)):
+	to_sample = sample_size[0]*sample_size[1]
+	imsize = int(np.sqrt(data.shape[1]))
+	selected_idx = np.random.choice(data.shape[0], to_sample)
+	
+	tli = tile_raster_images(data[selected_idx], (imsize, imsize), sample_size)	
+	image = Image.fromarray(tli)
+	return image
+
+
+
+
+
+
