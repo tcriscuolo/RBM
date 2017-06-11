@@ -13,7 +13,7 @@ from numpy.linalg import norm
 from tempfile import TemporaryFile
 
 class RBM:
-	def __init__(self, input = None, nvisible = None, nhidden = 100, lrate = 0.1,
+	def __init__(self, input = None, nvisible = None, nhidden = 500, lrate = 0.1,
 									W = None, vbias = None, hbias = None, seed = 123):
 		if (input is None):
 			try:
@@ -362,8 +362,7 @@ class RBM:
 		try:	
 			with open(file, 'wb') as out:
 
-				np.savez(out, input = self.input,
-										constants = [self.nvisible, self.nhidden, self.lrate, self.seed],
+				np.savez(out, constants = [self.nvisible, self.nhidden, self.lrate, self.seed],
 										weights = self.W,
 										vbias = self.vbias, 
 										hbias = self.hbias)
@@ -386,7 +385,7 @@ class RBM:
 			npfile = np.load(file)
 		
 			print('--- Loading data from %s' % input)
-			self.input = npfile['input']
+			#self.input = npfile['input']
 			self.W = npfile['weights']
 			self.vbias = npfile['vbias']
 			self.hbias = npfile['hbias']
@@ -411,12 +410,13 @@ class RBM:
 		shape = (samples_to_take * number_of_chains, self.imsize * self.imsize) 
 		images = np.zeros(shape)
 		
+		for samp in range(samples_to_take):
+			images[samp] = digits[samp] 	
+
 		for chain in range(1, number_of_chains):
 			digits = self.perform_cd(digits, cdk)
 			for idx in range(samples_to_take):
 				images[chain*samples_to_take + idx] = digits[idx] 
-		
-
 
 		return Image.fromarray(
 										tile_raster_images(images, (self.imsize, self.imsize), (samples_to_take, number_of_chains))

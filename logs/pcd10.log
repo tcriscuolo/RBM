@@ -1,0 +1,90 @@
+-- Training using persistent contrastive divergence
+nhidden: 500
+lrate: 0.100000
+nepochs: 20
+bsize: 50
+k: 10
+Epoch 0 stats
+		mean Reconstruction error: 19.175056
+		mean Cross Entropy: -877.920639
+		mean pseudo likelihood: -1259.548377
+Epoch 1 stats
+		mean Reconstruction error: 6.249181
+		mean Cross Entropy: -61.579890
+		mean pseudo likelihood: -60.483210
+Epoch 2 stats
+		mean Reconstruction error: 5.936501
+		mean Cross Entropy: -56.045262
+		mean pseudo likelihood: -70.799386
+Epoch 3 stats
+		mean Reconstruction error: 5.786506
+		mean Cross Entropy: -53.621003
+		mean pseudo likelihood: -59.813737
+Epoch 4 stats
+		mean Reconstruction error: 5.687051
+		mean Cross Entropy: -52.056543
+		mean pseudo likelihood: -70.550132
+Epoch 5 stats
+		mean Reconstruction error: 5.638163
+		mean Cross Entropy: -51.057915
+		mean pseudo likelihood: -66.970900
+Epoch 6 stats
+		mean Reconstruction error: 5.584207
+		mean Cross Entropy: -50.193724
+		mean pseudo likelihood: -54.987208
+Epoch 7 stats
+		mean Reconstruction error: 5.531099
+		mean Cross Entropy: -49.401098
+		mean pseudo likelihood: -63.529069
+Epoch 8 stats
+		mean Reconstruction error: 5.487135
+		mean Cross Entropy: -48.684658
+		mean pseudo likelihood: -45.578466
+Epoch 9 stats
+		mean Reconstruction error: 5.448525
+		mean Cross Entropy: -48.103344
+		mean pseudo likelihood: -76.138159
+Epoch 10 stats
+		mean Reconstruction error: 5.421358
+		mean Cross Entropy: -47.724477
+		mean pseudo likelihood: -56.803251
+Epoch 11 stats
+		mean Reconstruction error: 5.397854
+		mean Cross Entropy: -47.421183
+		mean pseudo likelihood: -77.611939
+Epoch 12 stats
+		mean Reconstruction error: 5.375100
+		mean Cross Entropy: -47.039659
+		mean pseudo likelihood: -60.189495
+Epoch 13 stats
+		mean Reconstruction error: 5.371356
+		mean Cross Entropy: -46.808659
+		mean pseudo likelihood: -59.531753
+Epoch 14 stats
+		mean Reconstruction error: 5.340536
+		mean Cross Entropy: -46.497810
+		mean pseudo likelihood: -66.655107
+Epoch 15 stats
+		mean Reconstruction error: 5.326991
+		mean Cross Entropy: -46.165235
+		mean pseudo likelihood: -56.548752
+Epoch 16 stats
+		mean Reconstruction error: 5.305657
+		mean Cross Entropy: -46.043050
+		mean pseudo likelihood: -63.048761
+Epoch 17 stats
+		mean Reconstruction error: 5.292247
+		mean Cross Entropy: -45.824654
+		mean pseudo likelihood: -87.508246
+Epoch 18 stats
+		mean Reconstruction error: 5.289944
+		mean Cross Entropy: -45.643013
+		mean pseudo likelihood: -55.829979
+Epoch 19 stats
+		mean Reconstruction error: 5.276103
+		mean Cross Entropy: -45.397846
+		mean pseudo likelihood: -47.657535
+Epoch 20 stats
+		mean Reconstruction error: 5.270654
+		mean Cross Entropy: -45.433426
+		mean pseudo likelihood: -60.290822

@@ -12,7 +12,7 @@ if __name__ == '__main__':
 	print(valid_x.shape)
 
 
-	M = RBM(nhidden = 500)
+	M = RBM()
 	#M.contrastive_divergence(validation = valid_x)
 	#m = np.asarray([[1, 2, 3, 4], [2, 3, 4, 5], [2, 3, 1, 1]])
 
