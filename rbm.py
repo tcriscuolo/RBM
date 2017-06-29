@@ -3,6 +3,7 @@ import os
 import subprocess
 import numpy as np
 import gzip
+import timeit 
 
 import PIL.Image as Image
 from utils import load_mnist_data
@@ -13,7 +14,7 @@ from numpy.linalg import norm
 from tempfile import TemporaryFile
 
 class RBM:
-	def __init__(self, input = None, nvisible = None, nhidden = 500, lrate = 0.1,
+	def __init__(self, input = None, nvisible = None, nhidden = 100, lrate = 1e-2,
 									W = None, vbias = None, hbias = None, seed = 123):
 		if (input is None):
 			try:
@@ -33,28 +34,28 @@ class RBM:
 		'''
 		if(W is None):
 			t = 4.0 * np.sqrt(6.0/float(nvisible + nhidden))
-			W = np.random.uniform(-t, t, (nvisible, nhidden)).astype('float64')
+			W = np.random.uniform(-t, t, (nvisible, nhidden)).astype('float32')
 
 		if(vbias is None):
-			vbias = np.zeros(nvisible, dtype = 'float64')
+			vbias = np.zeros(nvisible, dtype = 'float32')
 
 		if(hbias is None):
-			hbias = np.zeros(nhidden, dtype = 'float64')
+			hbias = np.zeros(nhidden, dtype = 'float32')
 		
 		self.nsample = input.shape[0]
 		self.imsize = int(np.sqrt(input.shape[1]))
 
 		self.seed = seed
-		np.random.seed(seed)
+		#np.random.seed(seed)
 
-		self.input = input.astype('float64')
+		self.input = input.astype('float32')
 		self.nvisible = nvisible
 		self.nhidden = nhidden
 		self.lrate = lrate
 		self.W = W
 		self.vbias = vbias
 		self.hbias = hbias
-	
+		self.bit_index = 0
 	''' 
 		Simple getters 
 	'''
@@ -96,7 +97,7 @@ class RBM:
 	'''
 	def sample_h_given_v(self, vunit):
 		pre_act, hprob = self.propup(vunit)
-		hsample = np.random.binomial(n = 1, p = hprob).astype('float64')
+		hsample = np.random.binomial(n = 1, p = hprob).astype('float32')
 		return [pre_act, hprob, hsample]
 
 	def propdown(self, hunit):
@@ -112,7 +113,7 @@ class RBM:
 	'''
 	def sample_v_given_h(self, hunit):
 		pre_act, vprob = self.propdown(hunit)
-		vsample = np.random.binomial(n = 1, p = vprob).astype('float64')
+		vsample = np.random.binomial(n = 1, p = vprob).astype('float32')
 		return [pre_act, vprob, vsample]
 
 
@@ -157,7 +158,8 @@ class RBM:
 	'''
 	def mean_reconstruction_error(self, x):
 		xtilde = self.gibbs_vhv(x)[-1]
-		return np.mean(norm(x - xtilde, axis = 1))
+		return np.mean(norm(x - xtilde,
+								axis = 1))
 
 
 	'''
@@ -172,10 +174,10 @@ class RBM:
 		gibbs = self.gibbs_vhv(x)
 		xprob = gibbs[-2]
 		xtilde = gibbs[-1]
-		ce = np.mean(np.sum(x * np.log(xprob) +
-						(1.0 - x)*np.log(1.0 - xprob), axis = 1))
-		return ce
 
+		ce = (np.mean(np.sum(x * np.log(xprob) +
+						(1.0 - x)*np.log(1.0 - xprob), axis = 1)))
+		return ce
 
 	''' 
 			Computes the mean pseudo likelihood flipping only a single bit 
@@ -191,23 +193,21 @@ class RBM:
 	def mean_pseudo_likelihood(self, x, idx):
 		xfe = self.free_energy(x)
 		# swaps the ith bit of each image
-		means = []
-		for index in idx:
-			# flip the ith visible unit
-			x[: , index] = 1 - x[:, index]	
-			nxfe = self.free_energy(x)
-			# flip back the ith visible unit
-			x[:, index] = 1 - x[:, index]
-			means.append(self.nvisible * np.log(sigmoid(nxfe - xfe)))
-		return np.mean(means)
+		# flip the i-th visible unit
+		x[:, idx] = 1 - x[:, idx]
+		nxfe = self.free_energy(x)
+		# flip back the i-th visible unit
+		x[:, idx] = 1 - x[:, idx]
+		#logsig = np.log(sigmoid(nxfe - xfe))
+
+		cost = np.mean(self.nvisible * np.log(sigmoid(nxfe - xfe)))
+		return cost
 	
-
-
 	def update_parameters(self, input, xtilde, verbosity = False):
 
-		Wp = np.zeros(self.W.shape, dtype = 'float64')
-		hbiasp = np.zeros(self.nhidden, dtype = 'float64')
-		vbiasp = np.zeros(self.nvisible, dtype = 'float64')
+		Wp = np.zeros(self.W.shape, dtype = 'float32')
+		hbiasp = np.zeros(self.nhidden, dtype = 'float32')
+		vbiasp = np.zeros(self.nvisible, dtype = 'float32')
 
 		batch_size = input.shape[0]
 		
@@ -221,9 +221,9 @@ class RBM:
 			vbiasp += self.update_vbias(xp, xt)
 		
 		blambda = self.lrate/float(batch_size)
-		self.W = self. W + (blambda * Wp)
-		self.hbias = self.hbias + (blambda * hbiasp)
-		self.vbias = self.vbias + (blambda * vbiasp)
+		self.W += (blambda * Wp)
+		self.hbias += (blambda * hbiasp)
+		self.vbias += (blambda * vbiasp)
 		if(verbosity):
 			print('Wp', norm(Wp))
 			print('hbiasp', norm(hbiasp))
@@ -237,15 +237,24 @@ class RBM:
 			xtilde = self.gibbs_vhv(xtilde)[-1]	
 		return xtilde
 
-	def validate_model(self, validation, epoch, size = 40):
+	def validate_model(self, validation, epoch, bsize = 20):
 		print('Epoch %d stats' % (epoch))
-		print('\t\tMean Reconstruction Error %f' % self.mean_reconstruction_error(validation))
-		print('\t\tMean Cross Entropy Error %f' % self.mean_cross_entropy(validation))
-		bit_index = np.random.choice(a = validation.shape[1], size = size)
-		print('\t\tMean pseudo likelihood error %f' % self.mean_pseudo_likelihood(validation, bit_index))
+		
+		print('\t\tmean reconstruction error \t%f' % self.mean_reconstruction_error(validation))
+		#print('\t\tmean cross entropy \t%f' % self.mean_cross_entropy(validation))
 
-	def contrastive_divergence(self, nepochs = 20, batch_size = 50, cdk = 10, 
-									validation = None, auto_save = False, auto_plot = True, decay_ratio = 1.0):
+		nbatches = validation.shape[0] // bsize
+		means = []
+		for batch in range(nbatches):
+			start = (batch)*bsize
+			end = (batch+1)*bsize
+			means.append(self.mean_pseudo_likelihood(validation[start:end], self.bit_index))
+			self.bit_index = (self.bit_index + 1) % self.nvisible
+							
+		print('\t\tmean pseudo likelihood \t%f' % np.mean(means))
+
+	def contrastive_divergence(self, nepochs = 20, batch_size = 20, cdk = 5, 
+									validation = None, auto_plot = True, decay_ratio = 1.0):
 		nbatches = self.input.shape[0] // batch_size
 		print('-- Training using contrastive divergence')
 		print('nhidden: %d' % self.nhidden)
@@ -255,11 +264,16 @@ class RBM:
 		print('k: %d' % cdk)
 
 		if (validation is not None):
-			self.validate_model(validation, 0)
-
+			self.validate_model(validation, epoch = 0)
+			print('\t\ttime \t%f' % 0.0)
+		
 		if(auto_plot):
 			im = self.hidden_units_to_image()
 			im.save('plots/nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, 0))
+			
+		start = timeit.default_timer()
+		plotting_timer = 0.0
+		val_timer = 0.0
 
 		for epoch in range(nepochs):
 			for batch in range(nbatches):
@@ -274,17 +288,21 @@ class RBM:
 			self.lrate = self.lrate * decay_ratio
 
 			if(validation is not None):
+				start_val = timeit.default_timer()
 				self.validate_model(validation, epoch + 1)
+				val_timer += timeit.default_timer() - start_val
+				elapsed = (timeit.default_timer() - start - plotting_timer - val_timer)
+				print('\t\ttime \t%f' % (elapsed))
 		
-			if(auto_save):
-				self.save_model('k_%d_cd_epoch_%d.model' % (cdk, epoch + 1))	
-
 			if(auto_plot):	
+				start_plotting = timeit.default_timer()
 				im = self.hidden_units_to_image()
 				im.save('plots/nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch + 1))
+				plotting_timer += (timeit.default_timer() - start_plotting)
+				
 
-	def persistent_contrastive_divergence(self, nepochs = 20, batch_size = 50, cdk = 10,
-									validation = None, auto_save = False, auto_plot = True, decay_ratio = 1.0):
+	def persistent_contrastive_divergence(self, nepochs = 20, batch_size = 20, cdk = 5,
+									validation = None,auto_plot = True, decay_ratio = 1.0):
 
 		nbatches = self.input.shape[0]  // batch_size
 		print('-- Training using persistent contrastive divergence')
@@ -294,14 +312,22 @@ class RBM:
 		print('bsize: %d' % batch_size)
 		print('k: %d' % cdk)
 
-		xpersisted = self.input.copy()
 		
+		xpersisted = self.input.copy()
+		xpersisted = xpersisted[np.random.choice(xpersisted.shape[0], size = batch_size), :]
+
+
 		if (validation is not None):
-			self.validate_model(validation, 0) 
+			self.validate_model(validation, epoch = 0)
+			print('\t\ttime \t%f' % 0.0)
 
 		if (auto_plot):
 			im = self.hidden_units_to_image()
 			im.save('plots/nhidden_%d_k_%d_pcd_filters_epoch_%d.png' % (self.nhidden, cdk, 0))
+
+		start = timeit.default_timer()
+		plotting_timer = 0.0
+		val_timer = 0.0
 
 		for epoch in range(nepochs):
 			for batch in range(nbatches):
@@ -309,31 +335,104 @@ class RBM:
 				high = (batch+1)*batch_size
 				x = self.input[low:high]
 
-				xpersisted[low:high] = self.perform_cd(xpersisted[low:high], cdk)
+				xpersisted = self.perform_cd(xpersisted, cdk)
 							
-				self.update_parameters(x, xpersisted[low:high])
+				self.update_parameters(x, xpersisted[0:batch_size])
 			'''
 				Decreases the learning rate after each epoch
 			'''
 			self.lrate = self.lrate * decay_ratio
 
 			if(validation is not None):
+				start_val = timeit.default_timer()
 				self.validate_model(validation, epoch + 1)
-
-			if(auto_save):
-				self.save_model('k_%d_cd_epoch_%d.model' % (cdk, epoch + 1))	
-			
+				val_timer += timeit.default_timer() - start_val
+				elapsed = (timeit.default_timer() - start - plotting_timer - val_timer) 
+				print('\t\ttime \t%f' % (elapsed))
+	
 			if(auto_plot):	
+				start_plotting = timeit.default_timer()
 				im = self.hidden_units_to_image()
-				im.save('plots/nhidden_%d_k_%d_pcd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch + 1))
+				im.save('plots/nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch + 1))
+				plotting_timer += (timeit.default_timer() - start_plotting)
+	
+	''' The proposed method is a variant of the 
+			parallel tempering method 
 
-	def validate_model(self, validation, epoch, size = 50):
-		print('Epoch %d stats' % (epoch))
-		print('\t\tmean Reconstruction error: %f' % self.mean_reconstruction_error(validation))
-		print('\t\tmean Cross Entropy: %f' % self.mean_cross_entropy(validation))
-		bit_index = np.random.choice(a = validation.shape[1], size = size)
-		print('\t\tmean pseudo likelihood: %f' % self.mean_pseudo_likelihood(validation, bit_index))
+			
+	'''
+	def prob_accepting(self, curr, prop, temp = 1.0):
+		curr_fe = self.free_energy(curr)
+		prop_fe = self.free_energy(prop)
+		x = prop_fe - curr_fe
+		probs = [min(1.0, u) for u in (1.0/(np.exp(x/temp)))]
+		return probs
 
+		return 1/(np.exp(-(prop - cur)/temp))
+	def proposed_method(self, nepochs = 15, batch_size = 20, cdk = 1, 
+											validation = None, auto_plot = True, decay_ratio = 1.0, temperature = 1.0):
+		nbatches = self.input.shape[0]  // batch_size
+		print('-- Training using proposed method')
+		print('nhidden: %d' % self.nhidden)
+		print('lrate: %f' % self.lrate)
+		print('nepochs: %d' % nepochs)
+		print('bsize: %d' % batch_size)
+		print('k: %d' % cdk)
+		
+		xpersisted = self.input.copy()
+		xpersisted = xpersisted[np.random.choice(xpersisted.shape[0], size = batch_size), :]
+
+
+		if (validation is not None):
+			self.validate_model(validation, epoch = 0)
+			print('\t\ttraining mean avg changes\t%f' % 0)
+			print('\t\ttime \t%f' % 0.0)
+
+		if (auto_plot):
+			im = self.hidden_units_to_image()
+			im.save('plots/nhidden_%d_k_%d_pcd_filters_epoch_%d.png' % (self.nhidden, cdk, 0))
+
+		start_timer = timeit.default_timer()
+		plotting_timer = 0.0
+		val_timer = 0.0
+		for epoch in range(nepochs):
+			changes = []
+			for batch in range(nbatches):
+				start = batch*batch_size
+				end = (batch+1)*batch_size
+
+				x = self.input[start:end]
+				xpersisted = self.perform_cd(xpersisted, cdk)
+				proposed = xpersisted.copy()
+		
+				bit = np.random.choice(proposed.shape[1], size = 2)
+
+				proposed[:, bit] = 1 - proposed[:, bit]
+				pchange = self.prob_accepting(xpersisted, proposed, temperature)
+				tochange = np.random.binomial(n = 1, p = pchange, size = xpersisted.shape[0]) == 1
+				changes.append(np.sum(tochange))
+				xpersisted[tochange] = proposed[tochange]
+				self.update_parameters(x, xpersisted[0:batch_size])
+			'''
+				Decreases the learning rate after each epoch
+			'''
+			self.lrate = self.lrate * decay_ratio
+			#temperature = temperature*0.9
+
+			if(validation is not None):
+				start_val = timeit.default_timer()
+				self.validate_model(validation, epoch + 1)
+				print('\t\ttraining mean avg changes\t%f' % (np.mean(changes)/batch_size))
+				val_timer += timeit.default_timer() - start_val
+				elapsed = (timeit.default_timer() - start_timer - plotting_timer - val_timer) 
+				print('\t\ttime \t%f' % (elapsed))
+	
+			if(auto_plot):	
+				start_plotting = timeit.default_timer()
+				im = self.hidden_units_to_image()
+				im.save('plots/nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch + 1))
+				plotting_timer += (timeit.default_timer() - start_plotting)
+		
 	def hidden_units_to_image(self, tile_shape = (10, 10)):
 		imsize = self.imsize
 		tiled_image = tile_raster_images(X = self.W.T, img_shape = (imsize, imsize),
@@ -399,7 +498,7 @@ class RBM:
 		except:
 			raise
 	
-	def sample_from_model(self, input = None, samples_to_take = 10, number_of_chains = 10, cdk = 100):
+	def sample_from_model(self, input = None, samples_to_take = 15, number_of_chains = 10, cdk = 100):
 		nsamples = input.shape[0]
 
 		selected_idx = np.random.choice(range(nsamples), samples_to_take)
@@ -419,5 +518,5 @@ class RBM:
 				images[chain*samples_to_take + idx] = digits[idx] 
 
 		return Image.fromarray(
-										tile_raster_images(images, (self.imsize, self.imsize), (samples_to_take, number_of_chains))
+										tile_raster_images(images, (self.imsize, self.imsize), (number_of_chains, samples_to_take))
 										)

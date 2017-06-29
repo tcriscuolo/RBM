@@ -1,0 +1,86 @@
+-- Training using proposed method
+nhidden: 500
+lrate: 0.010000
+nepochs: 15
+bsize: 20
+k: 1
+Epoch 0 stats
+		mean reconstruction error 	19.220503
+		mean pseudo likelihood 	-1232.891113
+		training mean avg changes	0.000000
+		time 	0.000000
+Epoch 1 stats
+		mean reconstruction error 	6.695785
+		mean pseudo likelihood 	-66.598846
+		training mean avg changes	0.040900
+		time 	63.779262
+Epoch 2 stats
+		mean reconstruction error 	6.249070
+		mean pseudo likelihood 	-96.660393
+		training mean avg changes	0.021180
+		time 	126.991912
+Epoch 3 stats
+		mean reconstruction error 	6.041346
+		mean pseudo likelihood 	-69.809212
+		training mean avg changes	0.018680
+		time 	190.488203
+Epoch 4 stats
+		mean reconstruction error 	5.883904
+		mean pseudo likelihood 	-52.369434
+		training mean avg changes	0.016020
+		time 	253.806429
+Epoch 5 stats
+		mean reconstruction error 	5.750777
+		mean pseudo likelihood 	-94.568916
+		training mean avg changes	0.014600
+		time 	316.898464
+Epoch 6 stats
+		mean reconstruction error 	5.629482
+		mean pseudo likelihood 	-55.923679
+		training mean avg changes	0.013400
+		time 	380.310068
+Epoch 7 stats
+		mean reconstruction error 	5.579265
+		mean pseudo likelihood 	-60.264858
+		training mean avg changes	0.011540
+		time 	443.410421
+Epoch 8 stats
+		mean reconstruction error 	5.479934
+		mean pseudo likelihood 	-89.971901
+		training mean avg changes	0.011420
+		time 	506.559619
+Epoch 9 stats
+		mean reconstruction error 	5.406343
+		mean pseudo likelihood 	-52.562305
+		training mean avg changes	0.010520
+		time 	569.731438
+Epoch 10 stats
+		mean reconstruction error 	5.350095
+		mean pseudo likelihood 	-63.434555
+		training mean avg changes	0.009780
+		time 	632.802736
+Epoch 11 stats
+		mean reconstruction error 	5.305082
+		mean pseudo likelihood 	-69.660713
+		training mean avg changes	0.010760
+		time 	695.940903
+Epoch 12 stats
+		mean reconstruction error 	5.299281
+		mean pseudo likelihood 	-48.291412
+		training mean avg changes	0.009640
+		time 	759.124521
+Epoch 13 stats
+		mean reconstruction error 	5.275854
+		mean pseudo likelihood 	-80.617012
+		training mean avg changes	0.009540
+		time 	822.319440
+Epoch 14 stats
+		mean reconstruction error 	5.261994
+		mean pseudo likelihood 	-58.759094
+		training mean avg changes	0.008560
+		time 	885.375908
+Epoch 15 stats
+		mean reconstruction error 	5.185671
+		mean pseudo likelihood 	-44.974636
+		training mean avg changes	0.008820
+		time 	948.441747

@@ -1,0 +1,70 @@
+-- Training using persistent contrastive divergence
+nhidden: 500
+lrate: 0.010000
+nepochs: 15
+bsize: 20
+k: 5
+Epoch 0 stats
+		mean reconstruction error 	18.787271
+		mean pseudo likelihood 	-1172.680664
+		time 	0.000000
+Epoch 1 stats
+		mean reconstruction error 	6.655774
+		mean pseudo likelihood 	-88.959496
+		time 	89.629825
+Epoch 2 stats
+		mean reconstruction error 	6.228261
+		mean pseudo likelihood 	-77.299301
+		time 	179.025126
+Epoch 3 stats
+		mean reconstruction error 	5.965966
+		mean pseudo likelihood 	-71.355713
+		time 	268.234274
+Epoch 4 stats
+		mean reconstruction error 	5.801131
+		mean pseudo likelihood 	-66.166603
+		time 	357.532149
+Epoch 5 stats
+		mean reconstruction error 	5.677475
+		mean pseudo likelihood 	-60.217693
+		time 	446.535816
+Epoch 6 stats
+		mean reconstruction error 	5.560503
+		mean pseudo likelihood 	-62.020988
+		time 	535.134394
+Epoch 7 stats
+		mean reconstruction error 	5.468425
+		mean pseudo likelihood 	-63.481899
+		time 	623.769329
+Epoch 8 stats
+		mean reconstruction error 	5.375759
+		mean pseudo likelihood 	-61.768883
+		time 	712.372425
+Epoch 9 stats
+		mean reconstruction error 	5.316420
+		mean pseudo likelihood 	-59.052505
+		time 	801.145416
+Epoch 10 stats
+		mean reconstruction error 	5.273454
+		mean pseudo likelihood 	-56.137726
+		time 	889.566934
+Epoch 11 stats
+		mean reconstruction error 	5.208676
+		mean pseudo likelihood 	-56.273308
+		time 	978.113250
+Epoch 12 stats
+		mean reconstruction error 	5.159412
+		mean pseudo likelihood 	-56.366611
+		time 	1067.070730
+Epoch 13 stats
+		mean reconstruction error 	5.113298
+		mean pseudo likelihood 	-56.816673
+		time 	1155.453295
+Epoch 14 stats
+		mean reconstruction error 	5.078989
+		mean pseudo likelihood 	-55.226231
+		time 	1243.905281
+Epoch 15 stats
+		mean reconstruction error 	5.032905
+		mean pseudo likelihood 	-52.783806
+		time 	1332.367336

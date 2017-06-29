@@ -1,0 +1,102 @@
+-- Training using proposed method
+nhidden: 100
+lrate: 0.010000
+nepochs: 15
+bsize: 100
+k: 1
+Epoch 0 stats
+		mean reconstruction error 	19.655990
+		mean cross entropy 	-673.308995
+		mean pseudo likelihood 	-675.503358
+		training mean number of changes	0
+		time 	0.000000
+Epoch 1 stats
+		mean reconstruction error 	10.059189
+		mean cross entropy 	-155.092456
+		mean pseudo likelihood 	-164.483828
+		training mean number of changes	40
+		time 	23.759214
+Epoch 2 stats
+		mean reconstruction error 	9.276649
+		mean cross entropy 	-131.605145
+		mean pseudo likelihood 	-139.659180
+		training mean number of changes	12
+		time 	47.407603
+Epoch 3 stats
+		mean reconstruction error 	8.970932
+		mean cross entropy 	-122.871644
+		mean pseudo likelihood 	-130.386088
+		training mean number of changes	6
+		time 	70.960287
+Epoch 4 stats
+		mean reconstruction error 	8.763691
+		mean cross entropy 	-116.899936
+		mean pseudo likelihood 	-124.716088
+		training mean number of changes	5
+		time 	94.520683
+Epoch 5 stats
+		mean reconstruction error 	8.593619
+		mean cross entropy 	-112.658536
+		mean pseudo likelihood 	-120.383951
+		training mean number of changes	5
+		time 	118.107318
+Epoch 6 stats
+		mean reconstruction error 	8.458940
+		mean cross entropy 	-109.203961
+		mean pseudo likelihood 	-116.779900
+		training mean number of changes	4
+		time 	141.722718
+Epoch 7 stats
+		mean reconstruction error 	8.359603
+		mean cross entropy 	-106.465129
+		mean pseudo likelihood 	-114.209331
+		training mean number of changes	4
+		time 	165.265078
+Epoch 8 stats
+		mean reconstruction error 	8.258638
+		mean cross entropy 	-104.204630
+		mean pseudo likelihood 	-111.752281
+		training mean number of changes	4
+		time 	188.819416
+Epoch 9 stats
+		mean reconstruction error 	8.182408
+		mean cross entropy 	-102.351233
+		mean pseudo likelihood 	-110.050247
+		training mean number of changes	4
+		time 	212.369115
+Epoch 10 stats
+		mean reconstruction error 	8.111500
+		mean cross entropy 	-100.489163
+		mean pseudo likelihood 	-107.912443
+		training mean number of changes	4
+		time 	235.880621
+Epoch 11 stats
+		mean reconstruction error 	8.051441
+		mean cross entropy 	-99.140754
+		mean pseudo likelihood 	-106.512044
+		training mean number of changes	3
+		time 	259.429856
+Epoch 12 stats
+		mean reconstruction error 	7.993344
+		mean cross entropy 	-97.719785
+		mean pseudo likelihood 	-104.986206
+		training mean number of changes	3
+		time 	282.967507
+Epoch 13 stats
+		mean reconstruction error 	7.949521
+		mean cross entropy 	-96.548947
+		mean pseudo likelihood 	-103.781241
+		training mean number of changes	3
+		time 	306.515475
+Epoch 14 stats
+		mean reconstruction error 	7.908899
+		mean cross entropy 	-95.528536
+		mean pseudo likelihood 	-102.515615
+		training mean number of changes	3
+		time 	330.029399
+Epoch 15 stats
+		mean reconstruction error 	7.862620
+		mean cross entropy 	-94.428054
+		mean pseudo likelihood 	-101.743809
+		training mean number of changes	3
+		time 	353.534377
