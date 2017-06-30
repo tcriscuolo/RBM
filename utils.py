@@ -181,7 +181,7 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(1, 1),
 		Plot samples images from a given data
 '''
 
-def sample_image(data, sample_size = (20, 20)):
+def sample_image(data, sample_size = (10, 10)):
 	to_sample = sample_size[0]*sample_size[1]
 	imsize = int(np.sqrt(data.shape[1]))
 	selected_idx = np.random.choice(data.shape[0], to_sample)

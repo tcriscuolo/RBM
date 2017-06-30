@@ -10,7 +10,7 @@ if __name__ == '__main__':
 
 	print(train_x.shape)
 	print(valid_x.shape)
-
+	print(test_x.shape)
 
 	M = RBM()
 	#M.contrastive_divergence(validation = valid_x)
