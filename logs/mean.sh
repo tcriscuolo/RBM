@@ -1,6 +1,6 @@
 #!/bin/bash
 
-folder='cd/cd_1' 
+folder=$1 
 what="pseudo" 
 out="${folder}/$what.txt"
 
