@@ -234,7 +234,7 @@ class RBM:
 	def perform_cd(self, input, k):
 		xtilde = input
 		for kprime in range(k):
-			xtilde = self.gibbs_vhv(xtilde)[-1]	
+			xtilde = self.gibbs_vhv(xtilde)[-1].copy()	
 		return xtilde
 
 	def validate_model(self, validation, epoch, bsize = 20):
@@ -269,7 +269,7 @@ class RBM:
 		
 		if(auto_plot):
 			im = self.hidden_units_to_image()
-			im.save('plots/nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, 0))
+			im.save('plots/CD_nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, 0))
 			
 		start = timeit.default_timer()
 		plotting_timer = 0.0
@@ -297,7 +297,7 @@ class RBM:
 			if(auto_plot):	
 				start_plotting = timeit.default_timer()
 				im = self.hidden_units_to_image()
-				im.save('plots/nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch + 1))
+				im.save('plots/CD_nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch + 1))
 				plotting_timer += (timeit.default_timer() - start_plotting)
 				
 
@@ -323,7 +323,7 @@ class RBM:
 
 		if (auto_plot):
 			im = self.hidden_units_to_image()
-			im.save('plots/nhidden_%d_k_%d_pcd_filters_epoch_%d.png' % (self.nhidden, cdk, 0))
+			im.save('plots/PCD_nhidden_%d_k_%d_pcd_filters_epoch_%d.png' % (self.nhidden, cdk, 0))
 
 		start = timeit.default_timer()
 		plotting_timer = 0.0
@@ -353,7 +353,7 @@ class RBM:
 			if(auto_plot):	
 				start_plotting = timeit.default_timer()
 				im = self.hidden_units_to_image()
-				im.save('plots/nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch + 1))
+				im.save('plots/PCD_nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch + 1))
 				plotting_timer += (timeit.default_timer() - start_plotting)
 	
 	''' The proposed method is a variant of the 
@@ -390,7 +390,7 @@ class RBM:
 
 		if (auto_plot):
 			im = self.hidden_units_to_image()
-			im.save('plots/nhidden_%d_k_%d_pcd_filters_epoch_%d.png' % (self.nhidden, cdk, 0))
+			im.save('plots/PM_nhidden_%d_k_%d_pcd_filters_epoch_%d.png' % (self.nhidden, cdk, 0))
 
 		start_timer = timeit.default_timer()
 		plotting_timer = 0.0
@@ -430,7 +430,7 @@ class RBM:
 			if(auto_plot):	
 				start_plotting = timeit.default_timer()
 				im = self.hidden_units_to_image()
-				im.save('plots/nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch + 1))
+				im.save('plots/PM_nhidden_%d_k_%d_cd_filters_epoch_%d.png' % (self.nhidden, cdk, epoch + 1))
 				plotting_timer += (timeit.default_timer() - start_plotting)
 		
 	def hidden_units_to_image(self, tile_shape = (10, 10)):
