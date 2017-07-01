@@ -1,7 +1,7 @@
 #!/bin/bash
 
 folder=$1 
-what="pseudo" 
+what="changes" 
 out="${folder}/$what.txt"
 
 rm -f $out
